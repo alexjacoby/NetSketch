@@ -38,13 +38,7 @@ import java.awt.MediaTracker;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import java.awt.event.*;
 
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
@@ -53,8 +47,6 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.DirectColorModel;
-import java.awt.image.WritableRaster;
 
 import java.io.File;
 import java.io.IOException;
@@ -314,6 +306,16 @@ public final class Draw implements ActionListener, MouseListener, MouseMotionLis
         frame.setTitle(name);
         frame.setJMenuBar(createMenuBar());
         frame.pack();
+        // Added A. Jacoby (June 2022)
+        frame.addWindowListener(new WindowAdapter() {
+           @Override
+           public void windowClosed(WindowEvent e) {
+              // notify all listeners
+              for (DrawListener listener : listeners) {
+                 listener.windowClosed();
+              }
+           }
+        });
         frame.requestFocusInWindow();
         frame.setVisible(true);
     }
@@ -1632,7 +1634,6 @@ public final class Draw implements ActionListener, MouseListener, MouseMotionLis
         for (DrawListener listener : listeners)
             listener.keyReleased(e.getKeyCode());
     }
-
 
    /***************************************************************************
     *  For improved resolution on Mac Retina displays.

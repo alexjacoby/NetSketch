@@ -76,4 +76,9 @@ public interface DrawListener {
      * @param keycode the key combination released
      */
     default void keyReleased(int keycode) {}
+
+    /**
+     * Invoked when the window is closed.
+     */
+    default void windowClosed() {}
 }
