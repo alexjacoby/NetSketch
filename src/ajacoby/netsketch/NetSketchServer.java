@@ -1,6 +1,7 @@
 package ajacoby.netsketch;
 
 import ajacoby.stdlib.Draw;
+import ajacoby.stdlib.DrawListener;
 
 import java.awt.*;
 import java.awt.geom.Point2D;
@@ -17,6 +18,9 @@ import java.util.List;
  * canvas.
  */
 public class NetSketchServer {
+   /**
+    * Thread for listening for updates from one client.
+    */
    private class NetSketchServerThread extends Thread {
       private Socket socket;
       private ObjectInputStream in;
@@ -60,6 +64,10 @@ public class NetSketchServer {
          }
       } // run
 
+      /**
+       * Sends all DrawEvents to a new client - to be called
+       * immediately after a new client connects.
+       */
       private void shareCanvas() throws IOException {
          System.out.println("Sending current state of canvas: " + drawEvents.size() + " event(s)");
          out.reset();
@@ -99,6 +107,15 @@ public class NetSketchServer {
          de.draw(win);
          drawEvents.add(de);
       }
+      win.addListener(new DrawListener() {
+         @Override
+         public void windowClosed() {
+            isServerAlive = false;
+            // Previous line doesn't really work since thread is usually in
+            // blocking call to in.readObject()!
+            System.exit(0);
+         }
+      });
       try (ServerSocket serverSocket = new ServerSocket(PORT);) {
          System.out.println("Server details:");
          System.out.println("Port: " + serverSocket.getLocalPort());

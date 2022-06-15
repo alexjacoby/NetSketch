@@ -28,6 +28,8 @@ public class NetSketchClient {
    private Color color = Color.getHSBColor((float) Math.random(), 1f, 1f);
    /** Last mouse coordinate for drag operations. */
    private Point2D lastPoint;
+   /** Flag to shut down. */
+   private boolean isClientRunning = true;
 
    public NetSketchClient(String host) {
       System.out.println("NetSketchClient connecting to " + host + ":" + NetSketchServer.PORT);
@@ -66,6 +68,14 @@ public class NetSketchClient {
             de.draw(win);
             send(de);
          }
+
+         @Override
+         public void windowClosed() {
+            isClientRunning = false;
+            // Previous line doesn't really work since thread is usually in
+            // blocking call to in.readObject()!
+            System.exit(0);
+         }
       });
    } // NetSketchClient()
 
@@ -82,7 +92,7 @@ public class NetSketchClient {
    private void handleServerUpdates() {
       try {
          System.out.println("Waiting for updates from server...");
-         while (true) {
+         while (isClientRunning) {
             DrawEvent de = (DrawEvent) in.readObject();
             de.draw(win);
          }

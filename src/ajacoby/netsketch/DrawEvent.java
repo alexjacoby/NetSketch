@@ -59,10 +59,16 @@ public class DrawEvent implements Serializable {
       Point2D pt2 = getPt2();
       double x2 = (pt2 != null)? pt2.getX() : 0;
       double y2 = (pt2 != null)? pt2.getY() : 0;
-      win.setPenColor(getColor());
-      switch (getType()) {
-         case POINT -> { win.filledCircle(x1, y1, 0.005); }
-         case LINE -> { win.line(x1, y1, x2, y2);}
+      synchronized (win) {
+         win.setPenColor(getColor());
+         switch (getType()) {
+            case POINT -> {
+               win.filledCircle(x1, y1, 0.005);
+            }
+            case LINE -> {
+               win.line(x1, y1, x2, y2);
+            }
+         }
       }
    }
 
