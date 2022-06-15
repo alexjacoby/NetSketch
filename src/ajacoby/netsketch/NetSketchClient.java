@@ -4,9 +4,9 @@ import ajacoby.stdlib.Draw;
 import ajacoby.stdlib.DrawListener;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -92,9 +92,24 @@ public class NetSketchClient {
          color = colorChooser.getColor();
       });
       controlWin.add(colorChooser);
-      controlWin.add(new JButton("Clear!"));
+      JButton clearBtn = new JButton("Clear!");
+      clearBtn.addActionListener(new ActionListener() {
+         @Override
+         public void actionPerformed(ActionEvent e) {
+            clearCanvas();
+         }
+      });
+      controlWin.add(clearBtn);
       controlWin.pack();
       controlWin.setVisible(true);
+   }
+
+   private void clearCanvas() {
+      Point2D pt1 = null;
+      Point2D pt2 = null;
+      DrawEvent de = new DrawEvent("client name", pt1, pt2, color, DrawEvent.DrawEventType.CLEAR);
+      de.draw(win);
+      send(de);
    }
 
    private void send(DrawEvent de) {
