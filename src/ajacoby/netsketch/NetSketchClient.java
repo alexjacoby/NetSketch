@@ -3,6 +3,9 @@ package ajacoby.netsketch;
 import ajacoby.stdlib.Draw;
 import ajacoby.stdlib.DrawListener;
 
+import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.io.IOException;
@@ -24,6 +27,7 @@ public class NetSketchClient {
    private ObjectOutputStream out;
    private ObjectInputStream in;
    private Draw win;
+   private JFrame controlWin;
    /** Each client currently gets a random color. */
    private Color color = Color.getHSBColor((float) Math.random(), 1f, 1f);
    /** Last mouse coordinate for drag operations. */
@@ -77,7 +81,21 @@ public class NetSketchClient {
             System.exit(0);
          }
       });
+      initControlWin();
    } // NetSketchClient()
+
+   private void initControlWin() {
+      controlWin = new JFrame("NetSketch Controls");
+      controlWin.getContentPane().setLayout(new BoxLayout(controlWin.getContentPane(), BoxLayout.PAGE_AXIS));
+      JColorChooser colorChooser = new JColorChooser(color);
+      colorChooser.getSelectionModel().addChangeListener(e -> {
+         color = colorChooser.getColor();
+      });
+      controlWin.add(colorChooser);
+      controlWin.add(new JButton("Clear!"));
+      controlWin.pack();
+      controlWin.setVisible(true);
+   }
 
    private void send(DrawEvent de) {
       try {
