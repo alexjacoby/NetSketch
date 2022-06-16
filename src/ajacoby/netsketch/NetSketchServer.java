@@ -48,7 +48,11 @@ public class NetSketchServer {
             while (continueThread && isServerAlive) {
                DrawEvent de = (DrawEvent) in.readObject();
                synchronized (drawEvents) {
-                  drawEvents.add(de);
+                  if (de.getType().equals(DrawEvent.DrawEventType.CLEAR)) {
+                     drawEvents.clear();
+                  } else {
+                     drawEvents.add(de);
+                  }
                }
                de.draw(win);
                broadcast(de);
