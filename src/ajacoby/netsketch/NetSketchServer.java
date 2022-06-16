@@ -103,7 +103,9 @@ public class NetSketchServer {
    public NetSketchServer() {
       boolean testing = false;
       if (testing) {
-         DrawEvent de = new DrawEvent("server", new Point2D.Double(0.5, 0.5), null, Color.GREEN, DrawEvent.DrawEventType.POINT);
+         DrawEvent de = new DrawEvent("server", new Point2D.Double(0.5, 0.5),
+               null, Color.GREEN, 0.005,
+               DrawEvent.DrawEventType.POINT);
          de.draw(win);
          drawEvents.add(de);
       }

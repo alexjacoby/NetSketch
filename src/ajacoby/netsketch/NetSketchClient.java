@@ -4,6 +4,8 @@ import ajacoby.stdlib.Draw;
 import ajacoby.stdlib.DrawListener;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -30,6 +32,8 @@ public class NetSketchClient {
    private JFrame controlWin;
    /** Each client currently gets a random color. */
    private Color color = Color.getHSBColor((float) Math.random(), 1f, 1f);
+   /** Pen radius for this client. */
+   private double radius = 0.005;
    /** Last mouse coordinate for drag operations. */
    private Point2D lastPoint;
    /** Flag to shut down. */
@@ -54,7 +58,9 @@ public class NetSketchClient {
          @Override public void mouseDragged(double x, double y) {
             Point2D pt2 = new Point2D.Double(x, y);
             if (lastPoint != null) {
-               DrawEvent de = new DrawEvent("client name", lastPoint, pt2, color, DrawEvent.DrawEventType.LINE);
+               DrawEvent de = new DrawEvent("client name",
+                     lastPoint, pt2, color, radius,
+                     DrawEvent.DrawEventType.LINE);
                de.draw(win);
                send(de);
             }
@@ -68,7 +74,9 @@ public class NetSketchClient {
          @Override public void mouseClicked(double x, double y) {
             Point2D pt1 = new Point2D.Double(x, y);
             Point2D pt2 = null;
-            DrawEvent de = new DrawEvent("client name", pt1, pt2, color, DrawEvent.DrawEventType.POINT);
+            DrawEvent de = new DrawEvent("client name",
+                  pt1, pt2, color, radius,
+                  DrawEvent.DrawEventType.POINT);
             de.draw(win);
             send(de);
          }
@@ -99,15 +107,33 @@ public class NetSketchClient {
             clearCanvas();
          }
       });
+      // Pen radius label and slider
+      Box radiusSliderBox = new Box(BoxLayout.X_AXIS);
+      radiusSliderBox.add(new JLabel("Pen Radius:"));
+      JSlider radiusSlider = new JSlider(1, 100, 5);
+      radiusSlider.addChangeListener(new ChangeListener() {
+         @Override
+         public void stateChanged(ChangeEvent e) {
+            radius = radiusFromPercent(radiusSlider.getValue());
+         }
+      });
+      radiusSliderBox.add(radiusSlider);
+      controlWin.add(radiusSliderBox);
+      // Clear Button
       controlWin.add(clearBtn);
+      // Finalize
       controlWin.pack();
       controlWin.setVisible(true);
    }
 
+   private double radiusFromPercent(int value) {
+      final double MAX_RADIUS = 0.1;
+      return MAX_RADIUS * value / 100;
+   }
+
    private void clearCanvas() {
-      Point2D pt1 = null;
-      Point2D pt2 = null;
-      DrawEvent de = new DrawEvent("client name", pt1, pt2, color, DrawEvent.DrawEventType.CLEAR);
+      DrawEvent de = new DrawEvent("client name",
+            DrawEvent.DrawEventType.CLEAR);
       de.draw(win);
       send(de);
    }

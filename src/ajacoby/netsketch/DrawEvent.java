@@ -12,18 +12,28 @@ public class DrawEvent implements Serializable {
    private DrawEventType type;
    private String source;
    private Point2D pt1, pt2;
-   private Color color;
+   private Color color = Color.BLACK;
    private double radius = 0.005;
 
    public DrawEvent(String source,
                     Point2D pt1, Point2D pt2,
                     Color color,
+                    double radius,
                     DrawEventType type) {
       this.source = source;
       this.pt1 = pt1;
       this.pt2 = pt2;
       this.color = color;
+      this.radius = radius;
       this.type = type;
+   }
+
+   /**
+    * Constructor for simpler event types like CLEAR.
+    */
+   public DrawEvent(String source, DrawEventType type) {
+      this.type = type;
+      this.source = source;
    }
 
    public String getSource() {
