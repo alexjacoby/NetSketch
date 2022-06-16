@@ -9,6 +9,8 @@ import java.io.Serializable;
 public class DrawEvent implements Serializable {
    public static enum DrawEventType {POINT, LINE, CLEAR}
 
+   private static final long serialVersionUID = 1;
+
    private DrawEventType type;
    private String source;
    private Point2D pt1, pt2;
