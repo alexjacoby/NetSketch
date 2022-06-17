@@ -65,6 +65,7 @@ public class NetSketchClient {
                send(de);
             }
             lastPoint = pt2;
+            controlWin.repaint();
          }
 
          @Override public void mouseReleased(double x, double y) {
@@ -79,6 +80,7 @@ public class NetSketchClient {
                   DrawEvent.DrawEventType.POINT);
             de.draw(win);
             send(de);
+            controlWin.repaint();
          }
 
          @Override
@@ -93,8 +95,9 @@ public class NetSketchClient {
    } // NetSketchClient()
 
    private void initControlWin() {
-      controlWin = new JFrame("NetSketch Controls");
+      controlWin = new JFrame("NetSketch Client");
       controlWin.getContentPane().setLayout(new BoxLayout(controlWin.getContentPane(), BoxLayout.PAGE_AXIS));
+      controlWin.getContentPane().add(win.getJLabel());
       JColorChooser colorChooser = new JColorChooser(color);
       colorChooser.getSelectionModel().addChangeListener(e -> {
          color = colorChooser.getColor();
@@ -154,6 +157,7 @@ public class NetSketchClient {
          while (isClientRunning) {
             DrawEvent de = (DrawEvent) in.readObject();
             de.draw(win);
+            controlWin.repaint();
          }
       } catch (Exception e) {
          throw new RuntimeException(e);
