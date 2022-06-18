@@ -584,11 +584,14 @@ public final class Draw implements ActionListener, MouseListener, MouseMotionLis
     }
 
     /**
-     * Gets the current {@code JLabel} for use in some other GUI.
+     * Gets the current {@code JLabel} for use in some other GUI
+     * and hides the current window. (Window hiding added by
+     * ajacoby.)
      *
      * @return the current {@code JLabel}
      */
     public JLabel getJLabel() {
+        frame.setVisible(false);
         return draw;
     }
 
