@@ -16,6 +16,8 @@ import java.util.List;
 /**
  * Allows multiple clients to simultaneously draw to a single Draw
  * canvas.
+ * <p>
+ * TODO: Add (graphical) list of currently connected clients.
  */
 public class NetSketchServer {
    /**
@@ -23,6 +25,7 @@ public class NetSketchServer {
     */
    private class NetSketchServerThread extends Thread {
       private Socket socket;
+      private String clientName;
       private ObjectInputStream in;
       private ObjectOutputStream out;
       private boolean continueThread = true;
@@ -34,9 +37,11 @@ public class NetSketchServer {
             System.out.println("NetSketchServerThread: attempting to create streams");
             in = new ObjectInputStream(socket.getInputStream());
             out = new ObjectOutputStream(socket.getOutputStream());
-            System.out.println("Created server IO streams\n");
-         } catch (IOException io) {
-            io.printStackTrace();
+            String connectStr = (String) in.readObject();
+            clientName = connectStr.substring(NetSketchClient.CONNECT_PREFIX.length());
+            System.out.println("Connected to " + clientName + "\n");
+         } catch (Exception e) {
+            e.printStackTrace();
          }
       } // NetSketchServerThread()
 

@@ -20,14 +20,16 @@ import java.util.Scanner;
 /**
  * Connects to NetSketchServer to allow user to draw on shared canvas.
  * <p>
- * Demo of and experiment with basic networking and threads.
+ * Demo of and experiment with basic networking, threads, and Swing components.
  *
  * @author A. Jacoby (June 2022)
  */
 public class NetSketchClient {
+   public static final String CONNECT_PREFIX = "NetSketchClient connect: ";
    private Socket clientSocket;
    private ObjectOutputStream out;
    private ObjectInputStream in;
+   private String name;
    /** Draw object works like a canvas embedded in our JFrame window. */
    private Draw draw;
    /** Window with draw canvas and controls. */
@@ -41,7 +43,8 @@ public class NetSketchClient {
    /** Flag to shut down. */
    private boolean isClientRunning = true;
 
-   public NetSketchClient(String host) {
+   public NetSketchClient(String host, String name) {
+      this.name = name;
       System.out.println("NetSketchClient connecting to " + host + ":" + NetSketchServer.PORT);
       // Network setup
       try {
@@ -49,6 +52,8 @@ public class NetSketchClient {
          System.out.println("Connected!");
          out = new ObjectOutputStream(clientSocket.getOutputStream());
          in = new ObjectInputStream(clientSocket.getInputStream());
+         out.writeObject(CONNECT_PREFIX + name);
+         out.flush();
       } catch (UnknownHostException e) {
          throw new RuntimeException(e);
       } catch (IOException e) {
@@ -66,7 +71,7 @@ public class NetSketchClient {
          @Override public void mouseDragged(double x, double y) {
             Point2D pt2 = new Point2D.Double(x, y);
             if (lastPoint != null) {
-               DrawEvent de = new DrawEvent("client name",
+               DrawEvent de = new DrawEvent(name,
                      lastPoint, pt2, color, radius,
                      DrawEvent.DrawEventType.LINE);
                de.draw(draw);
@@ -83,7 +88,7 @@ public class NetSketchClient {
          @Override public void mouseClicked(double x, double y) {
             Point2D pt1 = new Point2D.Double(x, y);
             Point2D pt2 = null;
-            DrawEvent de = new DrawEvent("client name",
+            DrawEvent de = new DrawEvent(name,
                   pt1, pt2, color, radius,
                   DrawEvent.DrawEventType.POINT);
             de.draw(draw);
@@ -144,7 +149,7 @@ public class NetSketchClient {
    }
 
    private void clearCanvas() {
-      DrawEvent de = new DrawEvent("client name",
+      DrawEvent de = new DrawEvent(name,
             DrawEvent.DrawEventType.CLEAR);
       de.draw(draw);
       send(de);
@@ -173,6 +178,12 @@ public class NetSketchClient {
       }
    }
 
+   private static String getRandomName() {
+      String[] names = {"Calvin", "Hobbes", "Hillary", "Sally", "Snoopy",
+            "Woodstock", "Charlie", "Opus", "Bill", "Nancy", "Jason"};
+      int idx = (int) (Math.random() * names.length);
+      return names[idx];
+   }
    public static void main(String[] args) {
       Scanner scan = new Scanner(System.in);
       System.out.print("IP to connect to? [127.0.0.1] ");
@@ -180,7 +191,13 @@ public class NetSketchClient {
       if (ipAddr.isBlank()) {
          ipAddr = "127.0.0.1";
       }
-      NetSketchClient client = new NetSketchClient(ipAddr);
+      String name = getRandomName();
+      System.out.print("Name? [" + name + "] ");
+      String nameInput = scan.nextLine();
+      if (!nameInput.isBlank()) {
+         name = nameInput;
+      }
+      NetSketchClient client = new NetSketchClient(ipAddr, name);
       client.handleServerUpdates();
    }
 
