@@ -3,6 +3,7 @@ package ajacoby.netsketch;
 import ajacoby.stdlib.Draw;
 import ajacoby.stdlib.DrawListener;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.io.IOException;
@@ -59,10 +60,11 @@ public class NetSketchServer {
                      drawEvents.add(de);
                   }
                }
-               de.draw(win);
+               de.draw(draw);
                broadcast(de);
             }
          } catch (Exception e) {
+            System.err.println("Exception from client: " + clientName);
             e.printStackTrace();
          }
          removeClient(this);
@@ -95,6 +97,7 @@ public class NetSketchServer {
             out.writeObject(de);
             out.flush();
          } catch (IOException e) {
+            System.err.println("Exception from client: " + clientName);
             e.printStackTrace();
             continueThread = false; // bail on fail!
             removeClient(this);
@@ -105,28 +108,23 @@ public class NetSketchServer {
    public static final int PORT = 63414;
    private List<DrawEvent> drawEvents = new ArrayList<>();
    private List<NetSketchServerThread> threads = new ArrayList<>();
-   private Draw win = new Draw("NetSketchServer");
+   /** Window with draw canvas and controls. */
+   private JFrame window;
+   /** Draw object works like a canvas embedded in our JFrame window. */
+   private Draw draw = new Draw("NetSketchServer");
    /** Flag for threads to know when to shut down. */
    private volatile boolean isServerAlive = true;
 
    public NetSketchServer() {
+      initWindow();
       boolean testing = false;
       if (testing) {
          DrawEvent de = new DrawEvent("server", new Point2D.Double(0.5, 0.5),
                null, Color.GREEN, 0.005,
                DrawEvent.DrawEventType.POINT);
-         de.draw(win);
+         de.draw(draw);
          drawEvents.add(de);
       }
-      win.addListener(new DrawListener() {
-         @Override
-         public void windowClosed() {
-            isServerAlive = false;
-            // Previous line doesn't really work since thread is usually in
-            // blocking call to in.readObject()!
-            System.exit(0);
-         }
-      });
       try (ServerSocket serverSocket = new ServerSocket(PORT);) {
          System.out.println("Server details:");
          System.out.println("Port: " + serverSocket.getLocalPort());
@@ -144,6 +142,22 @@ public class NetSketchServer {
       } catch (IOException ioe) {
          ioe.printStackTrace();
       }
+   }
+
+   private void initWindow() {
+      window = new JFrame("NetSketch Server");
+      window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      window.setLayout(new BoxLayout(window.getContentPane(), BoxLayout.LINE_AXIS));
+      // Add the draw canvas
+      window.add(draw.getJLabel());
+      // Add the controls to the right
+      Box controlBox = Box.createVerticalBox();
+      window.add(controlBox);
+      controlBox.add(Box.createVerticalGlue());
+      controlBox.add(Box.createVerticalGlue());
+      // Finalize
+      window.pack();
+      window.setVisible(true);
    }
 
    private void broadcast(DrawEvent de) {
