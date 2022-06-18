@@ -24,8 +24,10 @@ import java.util.Scanner;
  *
  * @author A. Jacoby (June 2022)
  */
-public class NetSketchClient {
+public class NetSketchClient implements Runnable {
    public static final String CONNECT_PREFIX = "NetSketchClient connect: ";
+   private static int numClients = 0;
+
    private Socket clientSocket;
    private ObjectOutputStream out;
    private ObjectInputStream in;
@@ -61,6 +63,7 @@ public class NetSketchClient {
       }
       initDraw();
       initWindow();
+      numClients++;
    } // NetSketchClient()
 
    private void initDraw() {
@@ -97,7 +100,7 @@ public class NetSketchClient {
    }
 
    private void initWindow() {
-      window = new JFrame("NetSketch Client");
+      window = new JFrame("NetSketch Client: " + name);
       window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
       window.setLayout(new BoxLayout(window.getContentPane(), BoxLayout.LINE_AXIS));
       // Add the draw canvas
@@ -137,7 +140,8 @@ public class NetSketchClient {
       controlBox.add(Box.createVerticalGlue());
       // Finalize
       window.pack();
-      window.setLocation(400, 200);
+      int offset = 30 * numClients;
+      window.setLocation(200 + offset, 200 + offset);
       window.setVisible(true);
    }
 
@@ -163,7 +167,7 @@ public class NetSketchClient {
       }
    } // send
 
-   private void handleServerUpdates() {
+   public void run() {
       try {
          System.out.println("Waiting for updates from server...");
          while (isClientRunning) {
@@ -181,6 +185,21 @@ public class NetSketchClient {
       int idx = (int) (Math.random() * names.length);
       return names[idx];
    }
+
+   public static NetSketchClient buildClient(String ipAddr) {
+      String name = getRandomName();
+      Scanner scan = new Scanner(System.in);
+      System.out.print("Name? [" + name + "] ");
+      String nameInput = scan.nextLine();
+      if (!nameInput.isBlank()) {
+         name = nameInput;
+      }
+      NetSketchClient client = new NetSketchClient(ipAddr, name);
+      Thread clientThread = new Thread(client);
+      clientThread.start();
+      return client;
+   }
+
    public static void main(String[] args) {
       Scanner scan = new Scanner(System.in);
       System.out.print("IP to connect to? [127.0.0.1] ");
@@ -188,14 +207,13 @@ public class NetSketchClient {
       if (ipAddr.isBlank()) {
          ipAddr = "127.0.0.1";
       }
-      String name = getRandomName();
-      System.out.print("Name? [" + name + "] ");
-      String nameInput = scan.nextLine();
-      if (!nameInput.isBlank()) {
-         name = nameInput;
+      System.out.print("Number of clients? [1] ");
+      String numClientsStr = scan.nextLine();
+      int numClients = (numClientsStr.isBlank())?
+            1 : Integer.parseInt(numClientsStr);
+      for (int i = 0; i < numClients; i++) {
+         buildClient(ipAddr);
       }
-      NetSketchClient client = new NetSketchClient(ipAddr, name);
-      client.handleServerUpdates();
    }
 
 }
