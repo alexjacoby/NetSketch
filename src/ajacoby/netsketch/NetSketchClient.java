@@ -34,8 +34,8 @@ public class NetSketchClient {
    private Draw draw;
    /** Window with draw canvas and controls. */
    private JFrame window;
-   /** Each client currently gets a random color. */
-   private Color color = Color.getHSBColor((float) Math.random(), 1f, 1f);
+   /** Each client starts with a random color. */
+   private Color color = Draw.randomColor();
    /** Pen radius for this client. */
    private double radius = 0.005;
    /** Last mouse coordinate for drag operations. */
@@ -78,7 +78,6 @@ public class NetSketchClient {
                send(de);
             }
             lastPoint = pt2;
-            window.repaint();
          }
 
          @Override public void mouseReleased(double x, double y) {
@@ -93,7 +92,6 @@ public class NetSketchClient {
                   DrawEvent.DrawEventType.POINT);
             de.draw(draw);
             send(de);
-            window.repaint();
          }
       });
    }
@@ -171,7 +169,6 @@ public class NetSketchClient {
          while (isClientRunning) {
             DrawEvent de = (DrawEvent) in.readObject();
             de.draw(draw);
-            window.repaint();
          }
       } catch (Exception e) {
          throw new RuntimeException(e);

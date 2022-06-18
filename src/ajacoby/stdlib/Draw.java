@@ -1309,7 +1309,11 @@ public final class Draw implements ActionListener, MouseListener, MouseMotionLis
      */
     public void show() {
         onscreen.drawImage(offscreenImage, 0, 0, null);
-        frame.repaint();
+        if (frame.isVisible()) {
+           frame.repaint();
+        } else if (draw != null) {
+           draw.repaint(); // If embedded in another window
+        }
     }
 
     // draw onscreen if defer is false
