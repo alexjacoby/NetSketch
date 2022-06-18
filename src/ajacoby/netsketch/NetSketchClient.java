@@ -28,8 +28,10 @@ public class NetSketchClient {
    private Socket clientSocket;
    private ObjectOutputStream out;
    private ObjectInputStream in;
-   private Draw win;
-   private JFrame controlWin;
+   /** Draw object works like a canvas embedded in our JFrame window. */
+   private Draw draw;
+   /** Window with draw canvas and controls. */
+   private JFrame window;
    /** Each client currently gets a random color. */
    private Color color = Color.getHSBColor((float) Math.random(), 1f, 1f);
    /** Pen radius for this client. */
@@ -52,20 +54,26 @@ public class NetSketchClient {
       } catch (IOException e) {
          throw new RuntimeException(e);
       }
-      // Window setup
-      win = new Draw("NetSketchClient");
-      win.addListener(new DrawListener() {
+      initDraw();
+      initWindow();
+   } // NetSketchClient()
+
+   private void initDraw() {
+      draw = new Draw();
+      // Hide the default window since we'll embed it in our own
+
+      draw.addListener(new DrawListener() {
          @Override public void mouseDragged(double x, double y) {
             Point2D pt2 = new Point2D.Double(x, y);
             if (lastPoint != null) {
                DrawEvent de = new DrawEvent("client name",
                      lastPoint, pt2, color, radius,
                      DrawEvent.DrawEventType.LINE);
-               de.draw(win);
+               de.draw(draw);
                send(de);
             }
             lastPoint = pt2;
-            controlWin.repaint();
+            window.repaint();
          }
 
          @Override public void mouseReleased(double x, double y) {
@@ -78,40 +86,31 @@ public class NetSketchClient {
             DrawEvent de = new DrawEvent("client name",
                   pt1, pt2, color, radius,
                   DrawEvent.DrawEventType.POINT);
-            de.draw(win);
+            de.draw(draw);
             send(de);
-            controlWin.repaint();
-         }
-
-         @Override
-         public void windowClosed() {
-            isClientRunning = false;
-            // Previous line doesn't really work since thread is usually in
-            // blocking call to in.readObject()!
-            System.exit(0);
+            window.repaint();
          }
       });
-      initControlWin();
-   } // NetSketchClient()
+   }
 
-   private void initControlWin() {
-      controlWin = new JFrame("NetSketch Client");
-      controlWin.getContentPane().setLayout(new BoxLayout(controlWin.getContentPane(), BoxLayout.PAGE_AXIS));
-      controlWin.getContentPane().add(win.getJLabel());
+   private void initWindow() {
+      window = new JFrame("NetSketch Client");
+      window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      window.setLayout(new BoxLayout(window.getContentPane(), BoxLayout.LINE_AXIS));
+      // Add the draw canvas
+      window.add(draw.getJLabel());
+      // Add the controls to the right
+      Box controlBox = Box.createVerticalBox();
+      window.add(controlBox);
+      controlBox.add(Box.createVerticalGlue());
       JColorChooser colorChooser = new JColorChooser(color);
       colorChooser.getSelectionModel().addChangeListener(e -> {
          color = colorChooser.getColor();
       });
-      controlWin.add(colorChooser);
-      JButton clearBtn = new JButton("Clear!");
-      clearBtn.addActionListener(new ActionListener() {
-         @Override
-         public void actionPerformed(ActionEvent e) {
-            clearCanvas();
-         }
-      });
+      controlBox.add(colorChooser);
       // Pen radius label and slider
-      Box radiusSliderBox = new Box(BoxLayout.X_AXIS);
+      Box radiusSliderBox = Box.createHorizontalBox();
+      radiusSliderBox.add(Box.createHorizontalGlue());
       radiusSliderBox.add(new JLabel("Pen Radius:"));
       JSlider radiusSlider = new JSlider(1, 100, 5);
       radiusSlider.addChangeListener(new ChangeListener() {
@@ -121,12 +120,22 @@ public class NetSketchClient {
          }
       });
       radiusSliderBox.add(radiusSlider);
-      controlWin.add(radiusSliderBox);
+      radiusSliderBox.add(Box.createHorizontalGlue());
+      controlBox.add(radiusSliderBox);
       // Clear Button
-      controlWin.add(clearBtn);
+      JButton clearBtn = new JButton("Clear!");
+      clearBtn.addActionListener(new ActionListener() {
+         @Override
+         public void actionPerformed(ActionEvent e) {
+            clearCanvas();
+         }
+      });
+      controlBox.add(clearBtn);
+      controlBox.add(Box.createVerticalGlue());
       // Finalize
-      controlWin.pack();
-      controlWin.setVisible(true);
+      window.pack();
+      window.setLocation(400, 200);
+      window.setVisible(true);
    }
 
    private double radiusFromPercent(int value) {
@@ -137,7 +146,7 @@ public class NetSketchClient {
    private void clearCanvas() {
       DrawEvent de = new DrawEvent("client name",
             DrawEvent.DrawEventType.CLEAR);
-      de.draw(win);
+      de.draw(draw);
       send(de);
    }
 
@@ -156,8 +165,8 @@ public class NetSketchClient {
          System.out.println("Waiting for updates from server...");
          while (isClientRunning) {
             DrawEvent de = (DrawEvent) in.readObject();
-            de.draw(win);
-            controlWin.repaint();
+            de.draw(draw);
+            window.repaint();
          }
       } catch (Exception e) {
          throw new RuntimeException(e);
