@@ -9,12 +9,16 @@ import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.geom.Point2D;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Scanner;
 
 /**
@@ -101,7 +105,17 @@ public class NetSketchClient implements Runnable {
 
    private void initWindow() {
       window = new JFrame("NetSketch Client: " + name);
-      window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+      window.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+      window.addWindowListener(new WindowAdapter() {
+         @Override
+         public void windowClosed(WindowEvent e) {
+            super.windowClosed(e);
+            numClients--;
+            if (numClients == 0) {
+               System.exit(0);
+            }
+         }
+      });
       window.setLayout(new BoxLayout(window.getContentPane(), BoxLayout.LINE_AXIS));
       // Add the draw canvas
       window.add(draw.getJLabel());
@@ -179,6 +193,27 @@ public class NetSketchClient implements Runnable {
       }
    }
 
+   /** Creates a new thread drawing random points. */
+   public void stressTest(final long maxPause) {
+      Thread t = new Thread() {
+         public void run() {
+            try {
+               System.out.println("Stress testing...");
+               while (isClientRunning) {
+                  Point2D.Double pt1 = new Point2D.Double(Math.random(), Math.random());
+                  DrawEvent de = new DrawEvent(name, pt1, null, color, radius, DrawEvent.DrawEventType.POINT);
+                  de.draw(draw);
+                  send(de);
+                  Thread.sleep((long) (Math.random() * maxPause));
+               }
+            } catch (Exception e) {
+               throw new RuntimeException(e);
+            }
+         }
+      };
+      t.start();
+   }
+
    private static String getRandomName() {
       String[] names = {"Calvin", "Hobbes", "Hillary", "Sally", "Snoopy",
             "Woodstock", "Charlie", "Opus", "Bill", "Nancy", "Jason"};
@@ -186,6 +221,7 @@ public class NetSketchClient implements Runnable {
       return names[idx];
    }
 
+   /** Creates a new client and runs it in its own thread. */
    public static NetSketchClient buildClient(String ipAddr) {
       String name = getRandomName();
       Scanner scan = new Scanner(System.in);
@@ -200,18 +236,34 @@ public class NetSketchClient implements Runnable {
       return client;
    }
 
+   /**
+    * Create a pool of clients to stress test the system: trying to
+    * uncover threading issues.
+    */
+   public static void stressTest(String ipAddr, long maxPause) {
+      Scanner scan = new Scanner(System.in);
+      System.out.print("Number of testers? [3] ");
+      String numTestersResp = scan.nextLine();
+      int numTesters = (numTestersResp.isBlank())? 3 : Integer.parseInt(numTestersResp);
+      ArrayList<NetSketchClient> clients = new ArrayList<>();
+      for (int i = 0; i < numTesters; i++) {
+         NetSketchClient client = buildClient(ipAddr);
+         clients.add(client);
+         client.stressTest(maxPause);
+      }
+   }
+
    public static void main(String[] args) {
       Scanner scan = new Scanner(System.in);
       System.out.print("IP to connect to? [127.0.0.1] ");
       String ipAddr = scan.nextLine();
-      if (ipAddr.isBlank()) {
-         ipAddr = "127.0.0.1";
-      }
-      System.out.print("Number of clients? [1] ");
-      String numClientsStr = scan.nextLine();
-      int numClients = (numClientsStr.isBlank())?
-            1 : Integer.parseInt(numClientsStr);
-      for (int i = 0; i < numClients; i++) {
+      ipAddr = ipAddr.isBlank()? "127.0.0.1" : ipAddr;
+      System.out.print("Stress test? [Y/n] ");
+      String stressResp = scan.nextLine().toLowerCase();
+      boolean doStressTest = stressResp.isBlank()? true : stressResp.startsWith("y");
+      if (doStressTest) {
+         stressTest(ipAddr, 50);
+      } else {
          buildClient(ipAddr);
       }
    }
