@@ -9,13 +9,74 @@ import java.io.Serializable;
 public class DrawEvent implements Serializable {
    public static enum DrawEventType {POINT, LINE, CLEAR}
 
-   private static final long serialVersionUID = 1;
+   /**
+    * Maintains parameters for different types of DrawEvents.
+    * <p>
+    *    TODO: Consider subclassing DrawEvent and using a static factory method instead.
+    * </p>
+    */
+   private abstract class DrawEventPayload implements Serializable {
+      private static final long serialVersionUID = 1;
+      public abstract void draw(Draw win);
+   }
 
-   private DrawEventType type;
+   private class PointPayload extends DrawEventPayload {
+      public final Point2D pt;
+      public final Color color;
+      public final double radius;
+
+      public PointPayload(Point2D pt, Color color, double radius) {
+         this.pt = pt;
+         this.color = color;
+         this.radius = radius;
+      }
+
+      @Override
+      public void draw(Draw win) {
+         synchronized (win) {
+            win.setPenColor(color);
+            win.filledCircle(pt.getX(), pt.getY(), radius);
+         }
+      }
+   } // PointPayload
+
+   private class LinePayload extends DrawEventPayload {
+      public final Point2D pt1;
+      public final Point2D pt2;
+      public final Color color;
+      public final double radius;
+
+      public LinePayload(Point2D pt1, Point2D pt2, Color color, double radius) {
+         this.pt1 = pt1;
+         this.pt2 = pt2;
+         this.color = color;
+         this.radius = radius;
+      }
+
+      @Override
+      public void draw(Draw win) {
+         synchronized (win) {
+            win.setPenColor(color);
+            win.setPenRadius(radius);
+            win.line(pt1.getX(), pt1.getY(), pt2.getX(), pt2.getY());
+         }
+      }
+   } // LinePayload
+
+   private class ClearPayload extends DrawEventPayload {
+      @Override
+      public void draw(Draw win) {
+         synchronized (win) {
+            win.clear();
+         }
+      }
+   } // ClearPayload
+
+   private static final long serialVersionUID = 2;
+
    private String source;
-   private Point2D pt1, pt2;
-   private Color color = Color.BLACK;
-   private double radius = 0.005;
+   private DrawEventType type;
+   private DrawEventPayload payload;
 
    public DrawEvent(String source,
                     Point2D pt1, Point2D pt2,
@@ -23,11 +84,12 @@ public class DrawEvent implements Serializable {
                     double radius,
                     DrawEventType type) {
       this.source = source;
-      this.pt1 = pt1;
-      this.pt2 = pt2;
-      this.color = color;
-      this.radius = radius;
       this.type = type;
+      this.payload = switch (type) {
+         case POINT -> new PointPayload(pt1, color, radius);
+         case LINE -> new LinePayload(pt1, pt2, color, radius);
+         case CLEAR -> new ClearPayload();
+      };
    }
 
    /**
@@ -36,66 +98,27 @@ public class DrawEvent implements Serializable {
    public DrawEvent(String source, DrawEventType type) {
       this.type = type;
       this.source = source;
+      this.payload = new ClearPayload();
    }
 
    public String getSource() {
       return source;
    }
 
-   public Point2D getPt1() {
-      return pt1;
-   }
-
-   public Point2D getPt2() {
-      return pt2;
-   }
-
-   public Color getColor() {
-      return color;
-   }
-
    public DrawEventType getType() {
       return type;
    }
-
-   public double getRadius() { return radius; }
-
-   public void setRadius(double radius) { this.radius = radius; }
 
    @Override
    public String toString() {
       return "DrawEvent{" +
             "source='" + source + '\'' +
-            ", pt1=" + pt1 +
-            ", pt2=" + pt2 +
-            ", color=" + color +
-            ", radius=" + radius +
             ", type=" + type +
             '}';
    }
 
    public void draw(Draw win) {
-      Point2D pt1 = getPt1();
-      double x1 = (pt1 != null)? pt1.getX() : 0;
-      double y1 = (pt1 != null)? pt1.getY() : 0;
-      Point2D pt2 = getPt2();
-      double x2 = (pt2 != null)? pt2.getX() : 0;
-      double y2 = (pt2 != null)? pt2.getY() : 0;
-      synchronized (win) {
-         win.setPenColor(getColor());
-         win.setPenRadius(radius);
-         switch (getType()) {
-            case POINT -> {
-               win.filledCircle(x1, y1, radius);
-            }
-            case LINE -> {
-               win.line(x1, y1, x2, y2);
-            }
-            case CLEAR -> {
-               win.clear();
-            }
-         }
-      }
+      payload.draw(win);
    }
 
 }
