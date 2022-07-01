@@ -1,7 +1,6 @@
 package ajacoby.netsketch;
 
 import ajacoby.stdlib.Draw;
-import ajacoby.stdlib.DrawListener;
 
 import javax.swing.*;
 import java.awt.*;
@@ -17,7 +16,7 @@ import java.util.List;
 /**
  * Allows multiple clients to simultaneously draw to a single Draw
  * canvas.
- * <p>
+ * <p></p>
  * TODO: Add (graphical) list of currently connected clients.
  */
 public class NetSketchServer {
@@ -25,7 +24,7 @@ public class NetSketchServer {
     * Thread for listening for updates from one client.
     */
    private class NetSketchServerThread extends Thread {
-      private Socket socket;
+      private final Socket socket;
       private String clientName;
       private ObjectInputStream in;
       private ObjectOutputStream out;
@@ -67,7 +66,7 @@ public class NetSketchServer {
             System.err.println("Exception from client: " + clientName);
             e.printStackTrace();
          }
-         removeClient(this);
+         continueThread = false;
          try {
             socket.close();
          } catch (IOException e) {
@@ -100,18 +99,17 @@ public class NetSketchServer {
             System.err.println("Exception from client: " + clientName);
             e.printStackTrace();
             continueThread = false; // bail on fail!
-            removeClient(this);
          }
       } // send
    } // NetSketchServerThread class
 
    public static final int PORT = 63414;
-   private List<DrawEvent> drawEvents = new ArrayList<>();
-   private List<NetSketchServerThread> threads = new ArrayList<>();
+   private final List<DrawEvent> drawEvents = new ArrayList<>();
+   private final List<NetSketchServerThread> threads = new ArrayList<>();
    /** Window with draw canvas and controls. */
    private JFrame window;
    /** Draw object works like a canvas embedded in our JFrame window. */
-   private Draw draw = new Draw("NetSketchServer");
+   private final Draw draw = new Draw("NetSketchServer");
    /** Flag for threads to know when to shut down. */
    private volatile boolean isServerAlive = true;
 
@@ -125,7 +123,7 @@ public class NetSketchServer {
          de.draw(draw);
          drawEvents.add(de);
       }
-      try (ServerSocket serverSocket = new ServerSocket(PORT);) {
+      try (ServerSocket serverSocket = new ServerSocket(PORT)) {
          System.out.println("Server details:");
          System.out.println("Port: " + serverSocket.getLocalPort());
          System.out.println("InetAddress: " + serverSocket.getInetAddress());
@@ -142,6 +140,7 @@ public class NetSketchServer {
       } catch (IOException ioe) {
          ioe.printStackTrace();
       }
+      isServerAlive = false;
    }
 
    private void initWindow() {
@@ -163,12 +162,7 @@ public class NetSketchServer {
    private void broadcast(DrawEvent de) {
       synchronized (threads) {
          threads.forEach(thread -> thread.send(de));
-      }
-   }
-
-   private void removeClient(NetSketchServerThread thread) {
-      synchronized (threads) {
-         threads.remove(thread);
+         threads.removeIf(thread -> !thread.continueThread);
       }
    }
 
